@@ -46,14 +46,12 @@ class App():
         self.ccpass_entry = Entry(self.root, width=20, bd=2, show="*", justify=CENTER)
         self.ccpass_entry.place(x=137, y=330)
         self.entries.append(self.ccpass_entry)
-
         append = Button(self.mainFrame, width=10, command=partial(self.register), text="Register", font=("Helvetica", "9", "bold"),
                         borderwidth=4)
         append.place(x=159, y=380)
-        self.error = self.c.create_text(200, 450, text="", fill="#ff0000")
+        self.error = self.c.create_text(200, 450, text="", fill="#ff0000", anchor="center")
         self.c.create_line(400, 0, 400, 480)
         self.c.create_line(1300, 0, 1300, 480)
-
         self.view = tkinter.ttk.Treeview(self.root, columns=("2", "3", "4", "5", "6", "7"), height=21, selectmode="browse")
         self.view.place(x=420, y=15)
         self.view.heading("#0", text="user_id"); self.view.column("#0", width=50, anchor=CENTER)
@@ -63,7 +61,6 @@ class App():
         self.view.heading("5", text="user_username"); self.view.column("5", width=110, anchor=CENTER)
         self.view.heading("6", text="user_password"); self.view.column("6", width=110, anchor=CENTER)
         self.view.heading("7", text="user_created_on"); self.view.column("7", width=150, anchor=CENTER)
-
         self.c.create_rectangle(1320, 15, 1680, 45, fill="#ffffff")
         self.c.create_text(1500, 30, text="ACCOUNT MANAGEMENT", anchor="center", font=("Helvetica", "10", "bold"))
         self.c.create_text(1500, 80, text="Update", anchor="center")
@@ -76,16 +73,69 @@ class App():
         self.modifybutton = Button(self.mainFrame, width=15, command=partial(self.modify), text="Accept", font=("Helvetica", "9", "bold"),
                         borderwidth=4)
         self.modifybutton.place(x=1442, y=170)
-
         self.c.create_line(1300, 240, 1700, 240)
+        self.c.create_rectangle(1320, 255, 1680, 285, fill="#ffffff")
+        self.c.create_text(1500, 270, text="ADVANCED", anchor="center", font=("Helvetica", "10", "bold"))
+        self.c.create_text(1500, 80+240, text="Select", anchor="center")
+        self.advanced_selector = tkinter.ttk.Combobox(self.root, state="readonly")
+        self.advanced_selector["values"] = ("Delete account", "Clear database")
+        self.advanced_selector.place(x=1430, y=90+240)
+        self.advancedbutton = Button(self.mainFrame, width=15, command=partial(self.advanced), text="Accept",
+                                   font=("Helvetica", "9", "bold"),
+                                   borderwidth=4)
+        self.advancedbutton.place(x=1442, y=170+200)
+        self.second_error = self.c.create_text(1500, 220, text="", fill="#ff0000", anchor="center")
+        self.third_error = self.c.create_text(1500, 430, text="", fill="#ff0000", anchor="center")
 
     def modify(self):
-        pass
+        selected = self.view.item(self.view.focus())
+        if selected["text"] == "":
+            self.c.itemconfig(self.second_error, fill="#ff0000", text="Select an account")
+            return;
+        option = self.modify_selector.get()
+        if option == "":
+            self.c.itemconfig(self.second_error, fill="#ff0000", text="Select a row to update its value")
+            return;
+        to = self.modify_entry.get()
+        if to == "":
+            self.c.itemconfig(self.second_error, fill="#00b800", text="Select the new value")
+            return;
+
+        cur.execute(f"UPDATE account SET {option} = '{to}' WHERE user_id = {int(selected['text'])}")
+        conn.commit()
+        self.c.itemconfig(self.second_error, fill="#00b800", text=f"You have modified: {option}")
+        self.updateView()
+
+    def advanced(self):
+        option = self.advanced_selector.get()
+        if option == "":
+            self.c.itemconfig(self.third_error, fill="#ff0000", text="Select an option")
+            return;
+        elif option == "Delete account":
+            selected = self.view.item(self.view.focus())
+            if selected["text"] == "":
+                self.c.itemconfig(self.third_error, fill="#ff0000", text="Select an account")
+                return;
+            cur.execute(f"DELETE FROM account WHERE user_id = {int(selected['text'])}")
+            conn.commit()
+            self.c.itemconfig(self.third_error, fill="#00b800", text="You have deleted an account")
+            cur.execute(f"SELECT COUNT(*) FROM account")
+            _ = cur.fetchall()
+            if int(_[0][0]) == 0:
+                cur.execute(f"TRUNCATE TABLE account RESTART IDENTITY")
+                conn.commit()
+            self.updateView()
+        elif option == "Clear database":
+            cur.execute(f"DELETE FROM account")
+            cur.execute(f"TRUNCATE TABLE account RESTART IDENTITY")
+            conn.commit()
+            self.c.itemconfig(self.third_error, fill="#00b800", text="You have cleared the database")
+            self.updateView()
 
     def updateView(self):
         self.view.delete(*self.view.get_children())
         data = []
-        cur.execute("SELECT * FROM account")
+        cur.execute("SELECT * FROM account ORDER BY user_id")
         for i in cur.fetchall():
             data.append(i)
 
