@@ -1,2 +1,2 @@
-# Grading System
-![Grading System](https://i.ibb.co/DQKZ1Dp/img1.png)
+# Database Management
+![Grading System](https://i.ibb.co/m0TZjpb/img.png)
